@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.datasets import load_wine
 from sklearn.model_selection import train_test_split
+from sklearn.manifold import TSNE
 
 
 # ============================
@@ -12,7 +13,7 @@ from sklearn.model_selection import train_test_split
 class KNNClassifier:
     def __init__(self, k=3, metric="euclidean", p=2):
         """
-        Inicjalizacja klasyfikatora k-NN.ss
+        Inicjalizacja klasyfikatora k-NN.
 
         Parametry:
         - k: liczba sąsiadów do głosowania,
@@ -156,7 +157,6 @@ best_p = p_values[np.argmin(errors_p)]
 print("Najlepsza wartość p:", best_p)
 
 # ===== Ostateczny trening na pełnych danych treningowych =====
-# Używamy najlepszych hiperparametrów: k = best_k oraz p = best_p (metryka Minkowskiego)
 knn = KNNClassifier(k=best_k, metric="minkowski", p=best_p)
 knn.fit(X_train_full, y_train_full)
 y_pred = knn.predict(X_test)
@@ -171,4 +171,27 @@ print("Ostateczna Accuracy:", final_acc)
 plt.figure(figsize=(8, 6))
 sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
 plt.title("Ostateczna macierz pomyłek")
+plt.show()
+
+# t-SNE (T-distributed Stochastic Neighbor Embedding) to technika redukcji wymiarowości,
+# która umożliwia wizualizację wielowymiarowych danych w 2D.
+# Dzięki t-SNE możemy zobaczyć, jak dane są rozłożone w przestrzeni i czy model dobrze oddziela klasy.
+
+# Redukcja wymiarów zbioru testowego do 2D
+tsne = TSNE(n_components=2, random_state=42)
+X_test_embedded = tsne.fit_transform(X_test)
+
+plt.figure(figsize=(8, 6))
+scatter = plt.scatter(
+    X_test_embedded[:, 0],
+    X_test_embedded[:, 1],
+    c=y_pred,
+    cmap="viridis",
+    edgecolor="k",
+    s=50,
+)
+plt.title("t-SNE: Wizualizacja wyników k-NN (przewidywane klasy)")
+plt.xlabel("Komponent 1")
+plt.ylabel("Komponent 2")
+plt.legend(*scatter.legend_elements(), title="Klasy")
 plt.show()
