@@ -7,13 +7,17 @@ from sklearn.datasets import load_wine
 from sklearn.model_selection import train_test_split
 from sklearn.manifold import TSNE
 
+from utils.utils import (
+    accuracy,
+    precision,
+    recall,
+    f1_score,
+)
+
 results_dir = "docs/task_knn_results"
 os.makedirs(results_dir, exist_ok=True)
 
 
-# ============================
-# Implementacja klasy k-NN z obsługą metryki Minkowskiego
-# ============================
 class KNNClassifier:
     def __init__(self, k=3, metric="euclidean", p=2):
         """
@@ -45,80 +49,16 @@ class KNNClassifier:
                 )
             else:
                 raise ValueError("Nieobsługiwana metryka: {}".format(self.metric))
+
             k_indices = np.argsort(distances)[: self.k]
             neighbor_labels = self.y_train[k_indices]
+
             unique_labels, counts = np.unique(neighbor_labels, return_counts=True)
             pred_label = unique_labels[np.argmax(counts)]
             predictions.append(pred_label)
         return np.array(predictions)
 
 
-# ============================
-# Funkcje oceny jakości
-# ============================
-def accuracy(y_true, y_pred):
-    """Oblicza dokładność klasyfikacji."""
-    return np.mean(np.array(y_true) == np.array(y_pred))
-
-
-def precision(y_true, y_pred, average="macro"):
-    """Oblicza precyzję. Obsługuje micro/macro averaging."""
-    y_true = np.array(y_true)
-    y_pred = np.array(y_pred)
-    classes = np.unique(np.concatenate((y_true, y_pred)))
-    if average == "macro":
-        precisions = []
-        for cls in classes:
-            tp = np.sum((y_true == cls) & (y_pred == cls))
-            fp = np.sum((y_true != cls) & (y_pred == cls))
-            prec = tp / (tp + fp) if (tp + fp) > 0 else 0
-            precisions.append(prec)
-        return np.mean(precisions)
-    elif average == "micro":
-        tp_total = 0
-        fp_total = 0
-        for cls in classes:
-            tp_total += np.sum((y_true == cls) & (y_pred == cls))
-            fp_total += np.sum((y_true != cls) & (y_pred == cls))
-        return tp_total / (tp_total + fp_total) if (tp_total + fp_total) > 0 else 0
-    else:
-        raise ValueError("average musi być 'macro' lub 'micro'.")
-
-
-def recall(y_true, y_pred, average="macro"):
-    """Oblicza recall. Obsługuje micro/macro averaging."""
-    y_true = np.array(y_true)
-    y_pred = np.array(y_pred)
-    classes = np.unique(np.concatenate((y_true, y_pred)))
-    if average == "macro":
-        recalls = []
-        for cls in classes:
-            tp = np.sum((y_true == cls) & (y_pred == cls))
-            fn = np.sum((y_true == cls) & (y_pred != cls))
-            rec = tp / (tp + fn) if (tp + fn) > 0 else 0
-            recalls.append(rec)
-        return np.mean(recalls)
-    elif average == "micro":
-        tp_total = 0
-        fn_total = 0
-        for cls in classes:
-            tp_total += np.sum((y_true == cls) & (y_pred == cls))
-            fn_total += np.sum((y_true == cls) & (y_pred != cls))
-        return tp_total / (tp_total + fn_total) if (tp_total + fn_total) > 0 else 0
-    else:
-        raise ValueError("average musi być 'macro' lub 'micro'.")
-
-
-def f1_score(y_true, y_pred, average="macro"):
-    """Oblicza F1-score. Obsługuje micro/macro averaging."""
-    prec = precision(y_true, y_pred, average)
-    rec = recall(y_true, y_pred, average)
-    return 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0
-
-
-# ============================
-# Funkcja tworząca macierz pomyłek
-# ============================
 def confusion_matrix(y_true, y_pred):
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
@@ -134,9 +74,6 @@ def confusion_matrix(y_true, y_pred):
     )
 
 
-# ============================
-# Funkcje do optymalizacji hiperparametrów
-# ============================
 def optimize_k(X_train, y_train, X_val, y_val, k_range):
     errors = []
     for k in k_range:
@@ -159,15 +96,12 @@ def optimize_p(X_train, y_train, X_val, y_val, p_values, k=3):
     return errors
 
 
-# ============================
-# Przykładowe użycie na Wine Dataset
-# ============================
-# Załadowanie danych
 data = load_wine()
 X = pd.DataFrame(data.data, columns=data.feature_names)
+print(X.head())
 y = pd.Series(data.target)
 
-# Podział danych na treningowy (80%) i testowy (20%)
+
 np.random.seed(42)
 indices = np.arange(len(X))
 np.random.shuffle(indices)
@@ -177,12 +111,11 @@ y_train_full = y.iloc[indices[:train_size]]
 X_test = X.iloc[indices[train_size:]]
 y_test = y.iloc[indices[train_size:]]
 
-# Dodatkowy podział treningu na podzbiór treningowy i walidacyjny (80/20)
+
 X_train, X_val, y_train, y_val = train_test_split(
     X_train_full, y_train_full, test_size=0.2, random_state=42
 )
 
-# ===== Optymalizacja parametru k =====
 k_range = range(1, 16)
 errors_k = optimize_k(X_train, y_train, X_val, y_val, k_range)
 
@@ -198,7 +131,6 @@ plt.show()
 best_k = k_range[np.argmin(errors_k)]
 print("Najlepsza wartość k:", best_k)
 
-# ===== Optymalizacja parametru p dla metryki Minkowskiego =====
 p_values = [1, 1.5, 2, 3, 4]
 errors_p = optimize_p(X_train, y_train, X_val, y_val, p_values, k=best_k)
 
@@ -214,7 +146,6 @@ plt.show()
 best_p = p_values[np.argmin(errors_p)]
 print("Najlepsza wartość p:", best_p)
 
-# ===== Ostateczny trening na pełnych danych treningowych =====
 knn = KNNClassifier(k=best_k, metric="minkowski", p=best_p)
 knn.fit(X_train_full, y_train_full)
 y_pred = knn.predict(X_test)
@@ -238,8 +169,6 @@ plt.title("Ostateczna macierz pomyłek")
 plt.savefig(os.path.join(results_dir, "confusion_matrix.png"))
 plt.show()
 
-# ===== Wizualizacja wyników t-SNE =====
-# t-SNE: technika redukcji wymiarowości, która umożliwia wizualizację wielowymiarowych danych w 2D.
 tsne = TSNE(n_components=2, random_state=42)
 X_test_embedded = tsne.fit_transform(X_test)
 
