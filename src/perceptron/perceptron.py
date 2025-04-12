@@ -5,7 +5,6 @@ import seaborn as sns
 import os
 from sklearn.model_selection import train_test_split
 
-
 from src.utils.utils import (
     accuracy,
     precision,
@@ -25,9 +24,9 @@ class Perceptron:
         Inicjalizacja klasyfikatora Perceptron.
 
         Parametry:
-        - learning_rate: współczynnik uczenia z przedziału (0, 1),
+        - learning_rate: współczynnik uczenia (0,1),
         - n_iter: maksymalna liczba iteracji,
-        - tolerance: próg zbieżności dla zmian wag i biasu.
+        - tolerance: próg zbieżności zmian wag i biasu.
         """
         self.learning_rate = learning_rate
         self.n_iter = n_iter
@@ -46,11 +45,10 @@ class Perceptron:
         Trenuje perceptron na danych treningowych.
 
         Parametry:
-        - X_train: macierz cech (numpy array),
-        - y_train: wektor etykiet (numpy array).
+        - X_train: macierz cech,
+        - y_train: wektor etykiet.
         """
         n_samples, n_features = X_train.shape
-
         self.weights = np.random.rand(n_features) * 0.01
         self.bias = 0
 
@@ -64,21 +62,13 @@ class Perceptron:
                     self.weights += update * x_j
                     self.bias += update
                     total_update += abs(update)
-
             if total_update < self.tolerance:
                 break
-
         return self
 
     def predict(self, X_test):
         """
         Przewiduje etykiety dla danych testowych.
-
-        Parametry:
-        - X_test: macierz cech (numpy array).
-
-        Zwraca:
-        - Wektor przewidywanych etykiet.
         """
         linear_output = np.dot(X_test, self.weights) + self.bias
         y_predicted = self._activation_function(linear_output)
@@ -92,11 +82,64 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-perceptron = Perceptron(learning_rate=0.01, n_iter=1000, tolerance=1e-4)
-perceptron.fit(X_train, y_train)
-y_pred = perceptron.predict(X_test)
+learning_rates = np.linspace(0.001, 0.1, 10)
 
-print("Accuracy:", accuracy(y_test, y_pred))
-print("Precision:", precision(y_test, y_pred))
-print("Recall:", recall(y_test, y_pred))
-print("F1 Score:", f1_score(y_test, y_pred))
+acc_list = []
+prec_list = []
+rec_list = []
+f1_list = []
+
+for lr in learning_rates:
+    perceptron = Perceptron(learning_rate=lr, n_iter=1000, tolerance=1e-4)
+    perceptron.fit(X_train, y_train)
+    y_pred = perceptron.predict(X_test)
+
+    acc = accuracy(y_test, y_pred)
+    prec = precision(y_test, y_pred, average="macro")
+    rec = recall(y_test, y_pred, average="macro")
+    f1 = f1_score(y_test, y_pred, average="macro")
+
+    acc_list.append(acc)
+    prec_list.append(prec)
+    rec_list.append(rec)
+    f1_list.append(f1)
+
+    print(
+        f"learning_rate: {lr:.3f} | Accuracy: {acc:.4f} | Precision: {prec:.4f} | Recall: {rec:.4f} | F1: {f1:.4f}"
+    )
+
+plt.figure(figsize=(8, 6))
+plt.plot(
+    learning_rates, acc_list, marker="o", linestyle="-", color="blue", label="Accuracy"
+)
+plt.plot(
+    learning_rates,
+    prec_list,
+    marker="s",
+    linestyle="--",
+    color="green",
+    label="Precision (macro)",
+)
+plt.plot(
+    learning_rates,
+    rec_list,
+    marker="^",
+    linestyle="--",
+    color="red",
+    label="Recall (macro)",
+)
+plt.plot(
+    learning_rates,
+    f1_list,
+    marker="d",
+    linestyle="--",
+    color="purple",
+    label="F1-score (macro)",
+)
+plt.xlabel("Learning Rate")
+plt.ylabel("Wartość metryki")
+plt.title("Wpływ learning_rate na wyniki klasyfikacji")
+plt.legend()
+plt.grid(True)
+plt.savefig(os.path.join(results_dir, "learning_rate_optimization.png"))
+plt.show()
