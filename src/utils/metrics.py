@@ -1,9 +1,9 @@
 import numpy as np
-from typing import Sequence, Union
+from typing import Sequence
 
 
 def accuracy(y_true: Sequence, y_pred: Sequence) -> float:
-    """Compute the classification accuracy."""
+    """Compute classification accuracy."""
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
     return float((y_true == y_pred).mean())
@@ -23,8 +23,8 @@ def precision(y_true: Sequence, y_pred: Sequence, average: str = "macro") -> flo
             scores.append(tp / (tp + fp) if tp + fp else 0.0)
         return float(np.mean(scores))
     elif average == "micro":
-        tp = np.sum((y_true == y_pred))
-        fp = np.sum((y_true != y_pred))
+        tp = np.sum(y_true == y_pred)
+        fp = np.sum(y_true != y_pred)
         return float(tp / (tp + fp)) if tp + fp else 0.0
     else:
         raise ValueError("average must be 'macro' or 'micro'")
@@ -44,8 +44,8 @@ def recall(y_true: Sequence, y_pred: Sequence, average: str = "macro") -> float:
             scores.append(tp / (tp + fn) if tp + fn else 0.0)
         return float(np.mean(scores))
     elif average == "micro":
-        tp = np.sum((y_true == y_pred))
-        fn = np.sum((y_true != y_pred))
+        tp = np.sum(y_true == y_pred)
+        fn = np.sum(y_true != y_pred)
         return float(tp / (tp + fn)) if tp + fn else 0.0
     else:
         raise ValueError("average must be 'macro' or 'micro'")
