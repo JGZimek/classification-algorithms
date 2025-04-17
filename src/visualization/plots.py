@@ -22,9 +22,13 @@ def plot_pairplot(
 def plot_tsne(
     X: np.ndarray, y: np.ndarray, results_dir: Path, title: str, filename: str
 ) -> np.ndarray:
-    emb = TSNE(
-        **__import__("..config", fromlist=["default_params"]).default_params["tsne"]
-    ).fit_transform(X)
+    """Transform data with t-SNE and plot."""
+    # Only use n_components and random_state from config to preserve sklearn defaults
+    from ..config import default_params
+
+    tsne_params = default_params.get("tsne", {})
+    emb = TSNE(**tsne_params).fit_transform(X)
+
     plt.figure(figsize=(8, 6))
     scatter = plt.scatter(
         emb[:, 0], emb[:, 1], c=y, cmap="viridis", s=50, edgecolor="k"

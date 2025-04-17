@@ -13,11 +13,5 @@ PERCEPTRON_RESULTS_DIR = RESULTS_DIR / "task_perceptron_results"
 default_params = {
     "knn": {"k": 3, "metric": "euclidean", "p": 2},
     "perceptron": {"learning_rate": 0.01, "n_iter": 1000, "tolerance": 1e-4},
-    "tsne": {
-        "n_components": 2,
-        "perplexity": 30,
-        "learning_rate": 200,
-        "n_iter": 1000,
-        "random_state": 42,
-    },
+    "tsne": {"n_components": 2, "random_state": 42},
 }
