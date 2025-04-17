@@ -5,12 +5,17 @@ from pathlib import Path
 from ..config import RAW_DATA_DIR, PROCESSED_DATA_DIR
 
 
-def load_banknote_data(filename: str) -> pd.DataFrame:
-    """Load banknote authentication CSV into DataFrame."""
+def load_banknote_data(filename: str) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+    """
+    Load banknote authentication CSV into DataFrame,
+    extract X (features), y (labels) and return in order X, y, df.
+    """
     path = RAW_DATA_DIR / filename
     df = pd.read_csv(path, header=None)
     df.columns = ["variance", "skewness", "curtosis", "entropy", "class"]
-    return df
+    X = df.iloc[:, :-1].values
+    y = df["class"].values
+    return X, y, df
 
 
 def load_wine_data() -> tuple[np.ndarray, np.ndarray]:

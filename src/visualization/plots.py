@@ -3,6 +3,7 @@ import seaborn as sns
 import numpy as np
 from pathlib import Path
 from sklearn.manifold import TSNE
+from ..config import default_params
 
 
 def ensure_directory(path: Path) -> None:
@@ -23,9 +24,6 @@ def plot_tsne(
     X: np.ndarray, y: np.ndarray, results_dir: Path, title: str, filename: str
 ) -> np.ndarray:
     """Transform data with t-SNE and plot."""
-    # Only use n_components and random_state from config to preserve sklearn defaults
-    from ..config import default_params
-
     tsne_params = default_params.get("tsne", {})
     emb = TSNE(**tsne_params).fit_transform(X)
 
@@ -63,6 +61,40 @@ def plot_confusion_matrix(
 ) -> None:
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
     plt.title("Confusion Matrix")
+    plt.tight_layout()
+    plt.savefig(results_dir / filename)
+    plt.show()
+
+
+def plot_metric_sweep(
+    x,
+    metrics: dict,
+    results_dir: Path,
+    xlabel: str,
+    ylabel: str,
+    title: str,
+    filename: str,
+) -> None:
+    """
+    Plot multiple metric curves against a shared x-axis in a single figure.
+
+    Args:
+        x: list or array of x-axis values (e.g., hyperparameter values).
+        metrics: dict mapping metric names to lists of metric values.
+        results_dir: Path to save the plot.
+        xlabel: label for the x axis.
+        ylabel: label for the y axis.
+        title: plot title.
+        filename: filename for saving the plot.
+    """
+    plt.figure(figsize=(8, 6))
+    for name, y_vals in metrics.items():
+        plt.plot(x, y_vals, marker="o", label=name)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.legend()
+    plt.grid(True)
     plt.tight_layout()
     plt.savefig(results_dir / filename)
     plt.show()
