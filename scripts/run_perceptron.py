@@ -9,8 +9,9 @@ from src.visualization.plots import (
     plot_pairplot,
     plot_confusion_matrix,
     plot_metric_sweep,
+    plot_evaluation_metrics,
 )
-from src.utils.metrics import confusion_matrix, plot_evaluation_metrics
+from src.utils.metrics import confusion_matrix
 from src.models.perceptron import Perceptron, optimize_learning_rate
 
 

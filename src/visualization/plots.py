@@ -98,3 +98,35 @@ def plot_metric_sweep(
     plt.tight_layout()
     plt.savefig(results_dir / filename)
     plt.show()
+
+
+def plot_evaluation_metrics(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    results_dir: Path,
+    average: str = "macro",
+    filename: str = "evaluation_metrics.png",
+) -> None:
+    """
+    Compute accuracy, precision, recall, F1 and plot as horizontal bar chart with labels.
+    """
+    from ..utils.metrics import accuracy, precision, recall, f1_score
+
+    metrics = {
+        "Accuracy": accuracy(y_true, y_pred),
+        f"Precision ({average})": precision(y_true, y_pred, average=average),
+        f"Recall ({average})": recall(y_true, y_pred, average=average),
+        f"F1 Score ({average})": f1_score(y_true, y_pred, average=average),
+    }
+
+    ensure_directory(results_dir)
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    bars = ax.barh(list(metrics.keys()), list(metrics.values()))
+    ax.set_xlabel("Score")
+    ax.set_title("Model Evaluation Metrics")
+    ax.bar_label(bars, fmt="%.4f", padding=3)
+
+    plt.tight_layout()
+    plt.savefig(results_dir / filename)
+    plt.show()

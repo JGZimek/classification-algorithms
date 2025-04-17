@@ -1,9 +1,6 @@
 import numpy as np
 import pandas as pd
 from typing import Sequence
-import matplotlib.pyplot as plt
-from pathlib import Path
-from ..visualization.plots import ensure_directory
 
 
 def accuracy(y_true: Sequence, y_pred: Sequence) -> float:
@@ -75,35 +72,3 @@ def confusion_matrix(y_true: Sequence, y_pred: Sequence) -> pd.DataFrame:
     idx = [f"Rzeczywiste: {c}" for c in classes]
     cols = [f"Predykowane: {c}" for c in classes]
     return pd.DataFrame(matrix, index=idx, columns=cols)
-
-
-def plot_evaluation_metrics(
-    y_true: np.ndarray,
-    y_pred: np.ndarray,
-    results_dir: Path,
-    average: str = "macro",
-    filename: str = "evaluation_metrics.png",
-) -> None:
-    """
-    Compute accuracy, precision, recall, F1 and plot as horizontal bar chart with labels.
-    """
-    from ..utils.metrics import accuracy, precision, recall, f1_score
-
-    metrics = {
-        "Accuracy": accuracy(y_true, y_pred),
-        f"Precision ({average})": precision(y_true, y_pred, average=average),
-        f"Recall ({average})": recall(y_true, y_pred, average=average),
-        f"F1 Score ({average})": f1_score(y_true, y_pred, average=average),
-    }
-
-    ensure_directory(results_dir)
-
-    fig, ax = plt.subplots(figsize=(6, 4))
-    bars = ax.barh(list(metrics.keys()), list(metrics.values()))
-    ax.set_xlabel("Score")
-    ax.set_title("Model Evaluation Metrics")
-    ax.bar_label(bars, fmt="%.4f", padding=3)
-
-    plt.tight_layout()
-    plt.savefig(results_dir / filename)
-    plt.show()
