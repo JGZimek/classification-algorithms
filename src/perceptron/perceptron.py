@@ -2,242 +2,209 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os
+from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.manifold import TSNE
 
-from src.utils.utils import (
-    accuracy,
-    precision,
-    recall,
-    f1_score,
-)
-
-results_dir = "docs/task_perceptron_results"
-os.makedirs(results_dir, exist_ok=True)
-
-data = pd.read_csv("data/data_banknote_authentication.csv", header=None)
-data.columns = ["variance", "skewness", "curtosis", "entropy", "class"]
-
-print("Pierwsze 5 rekordów danych:")
-print(data.head())
-
-print("\nInformacje o zbiorze danych:")
-print(data.info())
-
-print("\nRozkład klas:")
-print(data["class"].value_counts())
-
-# Wizualizacja par cech (ekspoloracja danych)
-sns.pairplot(data, hue="class")
-plt.suptitle("Wizualizacja par cech", y=1.02)
-plt.savefig(os.path.join(results_dir, "pairplot.png"))
-plt.show()
-
-# Wizualizacja danych w przestrzeni 2D przy użyciu t-SNE (redukcja wszystkich cech)
-X_all = data.iloc[:, :-1].values  # wszystkie cechy
-y_all = data["class"].values  # etykiety
-tsne = TSNE(
-    n_components=2, perplexity=30, learning_rate=200, n_iter=1000, random_state=42
-)
-X_tsne = tsne.fit_transform(X_all)
-plt.figure(figsize=(8, 6))
-for label in np.unique(y_all):
-    plt.scatter(
-        X_tsne[y_all == label, 0],
-        X_tsne[y_all == label, 1],
-        label=f"Klasa {label}",
-        alpha=0.7,
-    )
-plt.xlabel("t-SNE 1")
-plt.ylabel("t-SNE 2")
-plt.title("Wizualizacja t-SNE danych Banknote Authentication")
-plt.legend()
-plt.grid(True)
-plt.savefig(os.path.join(results_dir, "tsne_visualization.png"))
-plt.show()
+from src.utils.utils import accuracy, precision, recall, f1_score
 
 
-# IMPLEMENTACJA KLASYFIKATORA PERCEPTRON
+def ensure_directory(path: Path) -> None:
+    """Create directory if it doesn't exist."""
+    path.mkdir(parents=True, exist_ok=True)
+
+
+def load_csv_data(filepath: str, column_names: list) -> pd.DataFrame:
+    """Load CSV file and assign column names."""
+    df = pd.read_csv(filepath, header=None)
+    df.columns = column_names
+    return df
+
+
+def summarize_data(df: pd.DataFrame) -> None:
+    """Print head, info and class distribution."""
+    print("First 5 records:\n", df.head(), sep="")
+    print("\nInfo:")
+    df.info()
+    print("\nClass distribution:\n", df["class"].value_counts(), sep="")
+
+
+def plot_pairplot(df: pd.DataFrame, results_dir: Path) -> None:
+    sns.pairplot(df, hue="class")
+    plt.suptitle("Pairwise feature plot", y=1.02)
+    plt.tight_layout()
+    plt.savefig(results_dir / "pairplot.png")
+    plt.show()
+
+
+def tsne_plot(
+    X: np.ndarray, y: np.ndarray, results_dir: Path, title: str, filename: str
+) -> np.ndarray:
+    """Compute t-SNE embedding and plot colored by labels."""
+    embedded = TSNE(
+        n_components=2, perplexity=30, learning_rate=200, n_iter=1000, random_state=42
+    ).fit_transform(X)
+    plt.figure(figsize=(8, 6))
+    for label in np.unique(y):
+        mask = y == label
+        plt.scatter(
+            embedded[mask, 0], embedded[mask, 1], label=f"Class {label}", alpha=0.7
+        )
+    plt.xlabel("t-SNE 1")
+    plt.ylabel("t-SNE 2")
+    plt.title(title)
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(results_dir / filename)
+    plt.show()
+    return embedded
+
+
 class Perceptron:
-    def __init__(self, learning_rate=0.01, n_iter=1000, tolerance=1e-4):
-        """
-        Inicjalizacja klasyfikatora Perceptron.
+    """Simple Perceptron classifier."""
 
-        Parametry:
-        - learning_rate: współczynnik uczenia (0,1),
-        - n_iter: maksymalna liczba iteracji,
-        - tolerance: próg zbieżności zmian wag i biasu.
-        """
-        self.learning_rate = learning_rate
+    def __init__(
+        self, learning_rate: float = 0.01, n_iter: int = 1000, tolerance: float = 1e-4
+    ) -> None:
+        self.lr = learning_rate
         self.n_iter = n_iter
-        self.tolerance = tolerance
+        self.tol = tolerance
         self.weights = None
-        self.bias = None
+        self.bias = 0.0
 
-    def _activation_function(self, x):
-        """
-        Funkcja skokowa Heaviside'a.
-        """
-        return np.where(x >= 0, 1, 0)
+    @staticmethod
+    def _activate(z: np.ndarray) -> np.ndarray:
+        return np.where(z >= 0, 1, 0)
 
-    def fit(self, X_train, y_train):
-        """
-        Trenuje perceptron na danych treningowych.
-
-        Parametry:
-        - X_train: macierz cech,
-        - y_train: wektor etykiet.
-        """
-        n_samples, n_features = X_train.shape
-        # Inicjalizacja wag jako małe losowe wartości
+    def fit(self, X: np.ndarray, y: np.ndarray) -> "Perceptron":
+        n_samples, n_features = X.shape
         self.weights = np.random.rand(n_features) * 0.01
-        self.bias = 0
+        self.bias = 0.0
 
-        for iteration in range(self.n_iter):
-            total_update = 0
-            for idx, x_j in enumerate(X_train):
-                linear_output = np.dot(x_j, self.weights) + self.bias
-                y_predicted = self._activation_function(linear_output)
-                if y_predicted != y_train[idx]:
-                    update = self.learning_rate * (y_train[idx] - y_predicted)
-                    self.weights += update * x_j
+        for i in range(self.n_iter):
+            update_sum = 0.0
+            for xi, target in zip(X, y):
+                out = xi.dot(self.weights) + self.bias
+                pred = self._activate(out)
+                error = target - pred
+                if error:
+                    update = self.lr * error
+                    self.weights += update * xi
                     self.bias += update
-                    total_update += abs(update)
-            if total_update < self.tolerance:
-                print(f"Zbieżność osiągnięta po {iteration+1} iteracjach")
+                    update_sum += abs(update)
+            if update_sum < self.tol:
+                print(f"Converged after {i+1} iterations")
                 break
         return self
 
-    def predict(self, X_test):
-        """
-        Przewiduje etykiety dla danych testowych.
-        """
-        linear_output = np.dot(X_test, self.weights) + self.bias
-        y_predicted = self._activation_function(linear_output)
-        return y_predicted
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        out = X.dot(self.weights) + self.bias
+        return self._activate(out)
 
 
-# Przygotowanie danych do treningu (korzystamy z oryginalnych cech)
-X = data.iloc[:, :-1].values
-y = data.iloc[:, -1].values
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
-
-# OPTIMALIZACJA HIPERPARAMETRU learning_rate
-learning_rates = np.linspace(0.001, 0.1, 10)
-
-acc_list = []
-prec_list = []
-rec_list = []
-f1_list = []
-
-print("\nOptymalizacja hiperparametru learning_rate:")
-for lr in learning_rates:
-    perceptron = Perceptron(learning_rate=lr, n_iter=1000, tolerance=1e-4)
-    perceptron.fit(X_train, y_train)
-    y_pred = perceptron.predict(X_test)
-
-    acc = accuracy(y_test, y_pred)
-    prec = precision(y_test, y_pred, average="macro")
-    rec = recall(y_test, y_pred, average="macro")
-    f1 = f1_score(y_test, y_pred, average="macro")
-
-    acc_list.append(acc)
-    prec_list.append(prec)
-    rec_list.append(rec)
-    f1_list.append(f1)
-
-    print(
-        f"learning_rate: {lr:.3f} | Accuracy: {acc:.4f} | Precision: {prec:.4f} | Recall: {rec:.4f} | F1: {f1:.4f}"
+def evaluate(model: Perceptron, X_test: np.ndarray, y_test: np.ndarray) -> tuple:
+    y_pred = model.predict(X_test)
+    return (
+        accuracy(y_test, y_pred),
+        precision(y_test, y_pred, average="macro"),
+        recall(y_test, y_pred, average="macro"),
+        f1_score(y_test, y_pred, average="macro"),
     )
 
-# Wizualizacja wpływu learning_rate na wyniki klasyfikacji
-plt.figure(figsize=(8, 6))
-plt.plot(
-    learning_rates, acc_list, marker="o", linestyle="-", color="blue", label="Accuracy"
-)
-plt.plot(
-    learning_rates,
-    prec_list,
-    marker="s",
-    linestyle="--",
-    color="green",
-    label="Precision (macro)",
-)
-plt.plot(
-    learning_rates,
-    rec_list,
-    marker="^",
-    linestyle="--",
-    color="red",
-    label="Recall (macro)",
-)
-plt.plot(
-    learning_rates,
-    f1_list,
-    marker="d",
-    linestyle="--",
-    color="purple",
-    label="F1-score (macro)",
-)
-plt.xlabel("Learning Rate")
-plt.ylabel("Wartość metryki")
-plt.title("Wpływ learning_rate na wyniki klasyfikacji")
-plt.legend()
-plt.grid(True)
-plt.savefig(os.path.join(results_dir, "learning_rate_optimization.png"))
-plt.show()
 
-# WIZUALIZACJA GRANIC DECYZYJNYCH przy użyciu t-SNE
-# Aby wizualizować granice decyzyjne na przestrzeni 2D otrzymanej przez t-SNE,
-# najpierw redukujemy dane treningowe do 2D, a następnie trenujemy perceptron na tych danych.
-tsne_model = TSNE(
-    n_components=2, perplexity=30, learning_rate=200, n_iter=1000, random_state=42
-)
-X_train_tsne = tsne_model.fit_transform(X_train)
+def optimize_learning_rate(
+    X_train: np.ndarray,
+    X_test: np.ndarray,
+    y_train: np.ndarray,
+    y_test: np.ndarray,
+    lrs: list,
+) -> dict:
+    results = {"lr": [], "acc": [], "prec": [], "rec": [], "f1": []}
+    for lr in lrs:
+        model = Perceptron(learning_rate=lr)
+        model.fit(X_train, y_train)
+        acc, prec, rec, f1 = evaluate(model, X_test, y_test)
+        results["lr"].append(lr)
+        results["acc"].append(acc)
+        results["prec"].append(prec)
+        results["rec"].append(rec)
+        results["f1"].append(f1)
+        print(
+            f"lr={lr:.3f} | acc={acc:.4f} | prec={prec:.4f} | rec={rec:.4f} | f1={f1:.4f}"
+        )
+    return results
 
-# Trenowanie perceptronu na t-SNE zredukowanych danych
-perceptron_tsne = Perceptron(learning_rate=0.01, n_iter=1000, tolerance=1e-4)
-perceptron_tsne.fit(X_train_tsne, y_train)
 
-# Przygotowanie siatki dla wizualizacji granic decyzyjnych w przestrzeni t-SNE
-x_min, x_max = X_train_tsne[:, 0].min() - 5, X_train_tsne[:, 0].max() + 5
-y_min, y_max = X_train_tsne[:, 1].min() - 5, X_train_tsne[:, 1].max() + 5
-xx, yy = np.meshgrid(np.linspace(x_min, x_max, 300), np.linspace(y_min, y_max, 300))
-grid_tsne = np.c_[xx.ravel(), yy.ravel()]
+def plot_metrics(res: dict, results_dir: Path, filename: str) -> None:
+    plt.figure(figsize=(8, 6))
+    plt.plot(res["lr"], res["acc"], marker="o", label="Accuracy")
+    plt.plot(res["lr"], res["prec"], marker="s", linestyle="--", label="Precision")
+    plt.plot(res["lr"], res["rec"], marker="^", linestyle="--", label="Recall")
+    plt.plot(res["lr"], res["f1"], marker="d", linestyle="--", label="F1")
+    plt.xlabel("Learning rate")
+    plt.ylabel("Score")
+    plt.title("Learning rate optimization")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(results_dir / filename)
+    plt.show()
 
-Z_tsne = perceptron_tsne.predict(grid_tsne)
-Z_tsne = Z_tsne.reshape(xx.shape)
 
-from matplotlib.colors import ListedColormap
+def plot_decision_boundary(
+    X_emb: np.ndarray,
+    y: np.ndarray,
+    model: Perceptron,
+    results_dir: Path,
+    filename: str,
+) -> None:
+    x_min, x_max = X_emb[:, 0].min() - 5, X_emb[:, 0].max() + 5
+    y_min, y_max = X_emb[:, 1].min() - 5, X_emb[:, 1].max() + 5
+    xx, yy = np.meshgrid(np.linspace(x_min, x_max, 300), np.linspace(y_min, y_max, 300))
+    grid = np.c_[xx.ravel(), yy.ravel()]
+    Z = model.predict(grid).reshape(xx.shape)
+    plt.figure(figsize=(8, 6))
+    plt.contourf(xx, yy, Z, alpha=0.5)
+    for cls in np.unique(y):
+        mask = y == cls
+        plt.scatter(X_emb[mask, 0], X_emb[mask, 1], label=f"Class {cls}", edgecolor="k")
+    plt.xlabel("t-SNE 1")
+    plt.ylabel("t-SNE 2")
+    plt.title("Decision boundaries")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(results_dir / filename)
+    plt.show()
 
-cmap_light = ListedColormap(["#FFAAAA", "#AAAAFF"])
 
-plt.figure(figsize=(8, 6))
-plt.contourf(xx, yy, Z_tsne, alpha=0.5, cmap=cmap_light)
-plt.scatter(
-    X_train_tsne[y_train == 0, 0],
-    X_train_tsne[y_train == 0, 1],
-    color="red",
-    marker="o",
-    edgecolor="k",
-    label="Klasa 0",
-)
-plt.scatter(
-    X_train_tsne[y_train == 1, 0],
-    X_train_tsne[y_train == 1, 1],
-    color="blue",
-    marker="s",
-    edgecolor="k",
-    label="Klasa 1",
-)
-plt.xlabel("t-SNE 1")
-plt.ylabel("t-SNE 2")
-plt.title("Granice decyzyjne perceptronu na danych zredukowanych przez t-SNE")
-plt.legend()
-plt.grid(True)
-plt.savefig(os.path.join(results_dir, "decision_boundaries_tsne.png"))
-plt.show()
+def main():
+    results_dir = Path("docs/task_perceptron_results")
+    ensure_directory(results_dir)
+
+    cols = ["variance", "skewness", "curtosis", "entropy", "class"]
+    df = load_csv_data("data/data_banknote_authentication.csv", cols)
+    summarize_data(df)
+    plot_pairplot(df, results_dir)
+
+    X = df.iloc[:, :-1].values
+    y = df["class"].values
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    lrs = list(np.linspace(0.001, 0.1, 10))
+    res = optimize_learning_rate(X_train, X_test, y_train, y_test, lrs)
+    plot_metrics(res, results_dir, "lr_opt.png")
+
+    X_emb = tsne_plot(X_train, y_train, results_dir, "TSNE Train", "tsne_train.png")
+    model_tsne = Perceptron(learning_rate=0.01)
+    model_tsne.fit(X_emb, y_train)
+    plot_decision_boundary(
+        X_emb, y_train, model_tsne, results_dir, "decision_boundary_tsne.png"
+    )
+
+
+if __name__ == "__main__":
+    main()
