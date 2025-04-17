@@ -2,12 +2,7 @@ from pathlib import Path
 import numpy as np
 from src.config import KNN_RESULTS_DIR, default_params
 from src.data.loader import load_wine_data
-from src.utils.data_ops import shuffle_and_split
 from src.utils.metrics import (
-    accuracy,
-    precision,
-    recall,
-    f1_score,
     confusion_matrix,
     plot_evaluation_metrics,
 )
