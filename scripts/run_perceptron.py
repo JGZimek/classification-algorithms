@@ -8,8 +8,7 @@ from src.visualization.plots import (
     ensure_directory,
     plot_pairplot,
     plot_confusion_matrix,
-    plot_metric_sweep,
-    plot_evaluation_metrics,
+    print_metric_sweep,
 )
 from src.utils.metrics import confusion_matrix
 from src.models.perceptron import Perceptron, optimize_learning_rate
@@ -27,36 +26,40 @@ def main():
     )
 
     lrs = list(np.linspace(0.001, 1, 10))
-    lrs, acc, prec, rec, f1 = optimize_learning_rate(
-        X_train, X_test, y_train, y_test, lrs
+
+    # 1) Macro
+    _, acc_mac, prec_mac, rec_mac, f1_mac = optimize_learning_rate(
+        X_train, X_test, y_train, y_test, lrs, average="macro"
+    )
+    # 2) Micro
+    _, acc_mic, prec_mic, rec_mic, f1_mic = optimize_learning_rate(
+        X_train, X_test, y_train, y_test, lrs, average="micro"
     )
 
     metrics = {
-        "Accuracy": acc,
-        "Precision (macro)": prec,
-        "Recall (macro)": rec,
-        "F1 Score (macro)": f1,
+        "Accuracy (macro)": acc_mac,
+        "Precision (macro)": prec_mac,
+        "Recall (macro)": rec_mac,
+        "F1 Score (macro)": f1_mac,
+        "Accuracy (micro)": acc_mic,
+        "Precision (micro)": prec_mic,
+        "Recall (micro)": rec_mic,
+        "F1 Score (micro)": f1_mic,
     }
-    plot_metric_sweep(
-        lrs,
-        metrics,
-        results_dir,
-        xlabel="Learning Rate",
-        ylabel="Score",
-        title="Learning Rate Optimization",
-        filename="lr_metrics.png",
-    )
+    print_metric_sweep(lrs, metrics)
 
-    best_idx = int(np.argmax(f1))
-    best_lr = lrs[best_idx]
-    print(f"Best learning_rate: {best_lr:.3f}")
+    best_idx_mac = int(np.argmax(f1_mac))
+    best_lr_mac = lrs[best_idx_mac]
+    best_idx_mic = int(np.argmax(f1_mic))
+    best_lr_mic = lrs[best_idx_mic]
+
+    print(f"\nBest learning_rate (macro F1): {best_lr_mac:.3f}")
+    print(f"Best learning_rate (micro F1): {best_lr_mic:.3f}")
+    best_lr = best_lr_mac
 
     model = Perceptron(learning_rate=best_lr).fit(X_train, y_train)
     y_pred = model.predict(X_test)
 
-    plot_evaluation_metrics(y_test, y_pred, results_dir, average="macro")
-
-    # Confusion matrix
     cm = confusion_matrix(y_test, y_pred)
     plot_confusion_matrix(cm, results_dir)
 

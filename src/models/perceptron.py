@@ -38,14 +38,22 @@ class Perceptron:
 
 
 def optimize_learning_rate(
-    X_train, X_test, y_train, y_test, lrs: List[float]
+    X_train: np.ndarray,
+    X_test: np.ndarray,
+    y_train: np.ndarray,
+    y_test: np.ndarray,
+    lrs: List[float],
+    average: str = "macro",
 ) -> Tuple[List[float], List[float], List[float], List[float], List[float]]:
+    """
+    Sweep over lrs, zwraca: (lrs, acc, prec, rec, f1) dla zadanego average.
+    """
     acc, prec, rec, f1 = [], [], [], []
     for lr in lrs:
         m = Perceptron(learning_rate=lr).fit(X_train, y_train)
         y_pred = m.predict(X_test)
         acc.append(accuracy(y_test, y_pred))
-        prec.append(precision(y_test, y_pred, "macro"))
-        rec.append(recall(y_test, y_pred, "macro"))
-        f1.append(f1_score(y_test, y_pred, "macro"))
+        prec.append(precision(y_test, y_pred, average))
+        rec.append(recall(y_test, y_pred, average))
+        f1.append(f1_score(y_test, y_pred, average))
     return lrs, acc, prec, rec, f1

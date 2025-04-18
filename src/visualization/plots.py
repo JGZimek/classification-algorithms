@@ -66,67 +66,25 @@ def plot_confusion_matrix(
     plt.show()
 
 
-def plot_metric_sweep(
-    x,
-    metrics: dict,
-    results_dir: Path,
-    xlabel: str,
-    ylabel: str,
-    title: str,
-    filename: str,
+def print_metric_sweep(
+    x: list[float],
+    metrics: dict[str, list[float]],
 ) -> None:
     """
-    Plot multiple metric curves against a shared x-axis in a single figure.
+    Print a table of metric values for each x (e.g. learning rate).
 
     Args:
-        x: list or array of x-axis values (e.g., hyperparameter values).
-        metrics: dict mapping metric names to lists of metric values.
-        results_dir: Path to save the plot.
-        xlabel: label for the x axis.
-        ylabel: label for the y axis.
-        title: plot title.
-        filename: filename for saving the plot.
+        x: list of hyperparameter values.
+        metrics: dict mapping metric names to lists of values.
     """
-    plt.figure(figsize=(8, 6))
-    for name, y_vals in metrics.items():
-        plt.plot(x, y_vals, marker="o", label=name)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.title(title)
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(results_dir / filename)
-    plt.show()
-
-
-def plot_evaluation_metrics(
-    y_true: np.ndarray,
-    y_pred: np.ndarray,
-    results_dir: Path,
-    average: str = "macro",
-    filename: str = "evaluation_metrics.png",
-) -> None:
-    """
-    Compute accuracy, precision, recall, F1 and plot as horizontal bar chart with labels.
-    """
-    from ..utils.metrics import accuracy, precision, recall, f1_score
-
-    metrics = {
-        "Accuracy": accuracy(y_true, y_pred),
-        f"Precision ({average})": precision(y_true, y_pred, average=average),
-        f"Recall ({average})": recall(y_true, y_pred, average=average),
-        f"F1 Score ({average})": f1_score(y_true, y_pred, average=average),
-    }
-
-    ensure_directory(results_dir)
-
-    fig, ax = plt.subplots(figsize=(6, 4))
-    bars = ax.barh(list(metrics.keys()), list(metrics.values()))
-    ax.set_xlabel("Score")
-    ax.set_title("Model Evaluation Metrics")
-    ax.bar_label(bars, fmt="%.4f", padding=3)
-
-    plt.tight_layout()
-    plt.savefig(results_dir / filename)
-    plt.show()
+    # header
+    headers = ["lr"] + list(metrics.keys())
+    header_line = "".join(f"{h:<20}" for h in headers)
+    print(header_line)
+    print("-" * len(header_line))
+    # rows
+    for i, xv in enumerate(x):
+        row = f"{xv:<20.3f}"
+        for name in metrics:
+            row += f"{metrics[name][i]:<20.3f}"
+        print(row)
