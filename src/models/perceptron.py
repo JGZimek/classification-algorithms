@@ -36,6 +36,9 @@ class Perceptron:
         out = X.dot(self.weights) + self.bias
         return np.where(out >= 0, 1, 0)
 
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        return X.dot(self.weights) + self.bias
+
 
 def optimize_learning_rate(
     X_train: np.ndarray,
