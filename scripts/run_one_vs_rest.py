@@ -22,24 +22,28 @@ def main():
     results_dir = Path("docs/task_ovr_wine_results")
     ensure_directory(results_dir)
 
-    # load wine dataset
-    X, y = load_wine_data()
+    # load raw data for demonstration
+    data = load_wine()
+    df_raw = pd.DataFrame(data.data, columns=data.feature_names)
 
-    # select two features for demonstration
-    feature_names = load_wine().feature_names
-    demo_feats = [feature_names[0], feature_names[1]]  # e.g. ['alcohol', 'malic_acid']
-    df = pd.DataFrame(X, columns=feature_names)[demo_feats]
+    # select two features with very different scales
+    demo_feats = ["malic_acid", "proline"]
 
-    # original
+    # prepare DataFrame for demo
+    df = df_raw[demo_feats]
+
+    # original distributions
     df_orig = df.copy()
-    # standardized
+
+    # standardized (mean=0, std=1)
     scaler = StandardScaler()
     df_std = pd.DataFrame(scaler.fit_transform(df), columns=demo_feats)
-    # normalized
+
+    # normalized (each sample to unit length)
     normalizer = Normalizer(norm="l2")
     df_norm = pd.DataFrame(normalizer.fit_transform(df_std), columns=demo_feats)
 
-    # plot distributions
+    # plot distributions before and after
     fig, axes = plt.subplots(3, 1, figsize=(8, 12))
     for ax, dataset, title in zip(
         axes,
@@ -60,7 +64,8 @@ def main():
     plt.savefig(results_dir / "scaling_normalization_demo.png")
     plt.close()
 
-    # split into train/test
+    # now load and split for modeling
+    X, y = load_wine_data()
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
     )
