@@ -12,6 +12,10 @@ from src.utils.metrics import (
 )
 from src.visualization.plots import ensure_directory, plot_confusion_matrix
 
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.datasets import load_wine
+
 
 def main():
     # create results directory
@@ -20,6 +24,41 @@ def main():
 
     # load wine dataset
     X, y = load_wine_data()
+
+    # select two features for demonstration
+    feature_names = load_wine().feature_names
+    demo_feats = [feature_names[0], feature_names[1]]  # e.g. ['alcohol', 'malic_acid']
+    df = pd.DataFrame(X, columns=feature_names)[demo_feats]
+
+    # original
+    df_orig = df.copy()
+    # standardized
+    scaler = StandardScaler()
+    df_std = pd.DataFrame(scaler.fit_transform(df), columns=demo_feats)
+    # normalized
+    normalizer = Normalizer(norm="l2")
+    df_norm = pd.DataFrame(normalizer.fit_transform(df_std), columns=demo_feats)
+
+    # plot distributions
+    fig, axes = plt.subplots(3, 1, figsize=(8, 12))
+    for ax, dataset, title in zip(
+        axes,
+        [df_orig, df_std, df_norm],
+        [
+            "Original Distributions",
+            "Standardized Distributions",
+            "Normalized Distributions",
+        ],
+    ):
+        ax.hist(dataset[demo_feats[0]], bins=30, alpha=0.6, label=demo_feats[0])
+        ax.hist(dataset[demo_feats[1]], bins=30, alpha=0.6, label=demo_feats[1])
+        ax.set_title(title)
+        ax.legend()
+        ax.grid(True)
+
+    plt.tight_layout()
+    plt.savefig(results_dir / "scaling_normalization_demo.png")
+    plt.close()
 
     # split into train/test
     X_train, X_test, y_train, y_test = train_test_split(
