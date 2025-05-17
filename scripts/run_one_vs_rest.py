@@ -1,6 +1,6 @@
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-
+from sklearn.preprocessing import StandardScaler, Normalizer
 from src.data.loader import load_wine_data
 from src.models.one_vs_rest import OneVsRestClassifier
 from src.utils.metrics import (
@@ -18,11 +18,23 @@ def main():
     results_dir = Path("docs/task_ovr_wine_results")
     ensure_directory(results_dir)
 
-    # load and split wine dataset
+    # load wine dataset
     X, y = load_wine_data()
+
+    # split into train/test
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
     )
+
+    # standardization (mean=0, std=1)
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+
+    # vector normalization (L2)
+    normalizer = Normalizer(norm="l2")
+    X_train = normalizer.fit_transform(X_train)
+    X_test = normalizer.transform(X_test)
 
     # train One-vs-Rest perceptron
     ovr = OneVsRestClassifier(learning_rate=0.01, n_iter=1000, tolerance=1e-4)
