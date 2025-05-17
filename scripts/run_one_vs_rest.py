@@ -10,7 +10,11 @@ from src.utils.metrics import (
     f1_score,
     confusion_matrix,
 )
-from src.visualization.plots import ensure_directory, plot_confusion_matrix
+from src.visualization.plots import (
+    ensure_directory,
+    plot_confusion_matrix,
+    plot_scaling_normalization_demo,
+)
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -44,25 +48,7 @@ def main():
     df_norm = pd.DataFrame(normalizer.fit_transform(df_std), columns=demo_feats)
 
     # plot distributions before and after
-    fig, axes = plt.subplots(3, 1, figsize=(8, 12))
-    for ax, dataset, title in zip(
-        axes,
-        [df_orig, df_std, df_norm],
-        [
-            "Original Distributions",
-            "Standardized Distributions",
-            "Normalized Distributions",
-        ],
-    ):
-        ax.hist(dataset[demo_feats[0]], bins=30, alpha=0.6, label=demo_feats[0])
-        ax.hist(dataset[demo_feats[1]], bins=30, alpha=0.6, label=demo_feats[1])
-        ax.set_title(title)
-        ax.legend()
-        ax.grid(True)
-
-    plt.tight_layout()
-    plt.savefig(results_dir / "scaling_normalization_demo.png")
-    plt.close()
+    plot_scaling_normalization_demo(df_orig, df_std, df_norm, demo_feats, results_dir)
 
     # now load and split for modeling
     X, y = load_wine_data()

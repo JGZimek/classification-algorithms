@@ -88,3 +88,29 @@ def print_metric_sweep(
         for name in metrics:
             row += f"{metrics[name][i]:<20.3f}"
         print(row)
+
+
+def plot_scaling_normalization_demo(
+    df_orig, df_std, df_norm, demo_feats: list[str], results_dir: Path,
+    filename: str = "scaling_normalization_demo.png"
+) -> None:
+    """
+    Plot histograms of two features before and after standardization and normalization.
+    """
+    fig, axes = plt.subplots(3, 1, figsize=(8, 12))
+    titles = [
+        "Original Distributions",
+        "Standardized Distributions",
+        "Normalized Distributions",
+    ]
+    for ax, dataset, title in zip(axes, [df_orig, df_std, df_norm], titles):
+        ax.hist(dataset[demo_feats[0]], bins=30, alpha=0.6, label=demo_feats[0])
+        ax.hist(dataset[demo_feats[1]], bins=30, alpha=0.6, label=demo_feats[1])
+        ax.set_title(title)
+        ax.legend()
+        ax.grid(True)
+
+    plt.tight_layout()
+    plt.savefig(results_dir / filename)
+    plt.show()
+    plt.close()
