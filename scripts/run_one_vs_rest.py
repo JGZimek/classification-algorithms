@@ -40,11 +40,11 @@ def main():
     df_orig = df.copy()
 
     # standardized (mean=0, std=1)
-    scaler = StandardScaler()
+    scaler = StandardScaler() # z = (x - mean) / std
     df_std = pd.DataFrame(scaler.fit_transform(df), columns=demo_feats)
 
     # normalized (each sample to unit length)
-    normalizer = Normalizer(norm="l2")
+    normalizer = Normalizer(norm="l2") # l2 pierwiastek sumy kwadratów składowych
     df_norm = pd.DataFrame(normalizer.fit_transform(df_std), columns=demo_feats)
 
     # plot distributions before and after
