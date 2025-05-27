@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
 import numpy as np
 from pathlib import Path
 from sklearn.manifold import TSNE
@@ -18,6 +19,22 @@ def plot_pairplot(
     plt.tight_layout()
     plt.savefig(results_dir / filename)
     plt.show()
+
+
+def plot_class_distribution(
+    y: pd.Series, results_dir: Path, filename: str = "class_distribution.png"
+):
+    """
+    Rysuje i zapisuje wykres procentowego rozkładu klas.
+    """
+    fig, ax = plt.subplots()
+    y.value_counts(normalize=True).sort_index().plot(kind="bar", ax=ax, color="skyblue")
+    ax.set_xlabel("Klasa")
+    ax.set_ylabel("Procent próbek")
+    ax.set_title("Procentowy rozkład klas")
+    fig.tight_layout()
+    fig.savefig(results_dir / filename)
+    plt.close(fig)
 
 
 def plot_tsne(
@@ -91,8 +108,12 @@ def print_metric_sweep(
 
 
 def plot_scaling_normalization_demo(
-    df_orig, df_std, df_norm, demo_feats: list[str], results_dir: Path,
-    filename: str = "scaling_normalization_demo.png"
+    df_orig,
+    df_std,
+    df_norm,
+    demo_feats: list[str],
+    results_dir: Path,
+    filename: str = "scaling_normalization_demo.png",
 ) -> None:
     """
     Plot histograms of two features before and after standardization and normalization.

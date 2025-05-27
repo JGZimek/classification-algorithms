@@ -27,6 +27,7 @@ from src.utils.metrics import (
 from src.visualization.plots import (
     ensure_directory,
     plot_confusion_matrix,
+    plot_class_distribution,
 )
 
 RESULTS_DIR = "docs/task_ensemble_results"
@@ -84,6 +85,8 @@ def main():
     X_df = pd.DataFrame(data.data, columns=data.feature_names)
     y = pd.Series(data.target)
     describe_data(X_df, y)
+
+    plot_class_distribution(y, results_dir)
 
     # Podział
     X_train_df, X_test_df, y_train, y_test = train_test_split(
