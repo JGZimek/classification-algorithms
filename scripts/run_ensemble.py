@@ -12,7 +12,6 @@ from src.models.one_vs_rest import OneVsRestClassifier
 from sklearn.ensemble import (
     RandomForestClassifier,
     BaggingClassifier,
-    AdaBoostClassifier,
     GradientBoostingClassifier,
     HistGradientBoostingClassifier,
 )
