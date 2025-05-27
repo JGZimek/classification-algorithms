@@ -13,6 +13,8 @@ from sklearn.ensemble import (
     RandomForestClassifier,
     BaggingClassifier,
     AdaBoostClassifier,
+    GradientBoostingClassifier,
+    HistGradientBoostingClassifier,
 )
 from sklearn.tree import DecisionTreeClassifier
 
@@ -154,6 +156,32 @@ def main():
             learning_rate=0.5,
             algorithm="SAMME",
             random_state=42,
+        ),
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        results_dir,
+    )
+
+    # 6) GradientBoosting
+    evaluate_model(
+        "GradientBoosting",
+        GradientBoostingClassifier(
+            n_estimators=100, learning_rate=0.1, random_state=42
+        ),
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        results_dir,
+    )
+
+    # 7) HistGradientBoosting
+    evaluate_model(
+        "HistGradientBoosting",
+        HistGradientBoostingClassifier(
+            max_iter=100, learning_rate=0.1, random_state=42
         ),
         X_train,
         X_test,
