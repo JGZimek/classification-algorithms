@@ -147,24 +147,7 @@ def main():
         results_dir,
     )
 
-    # 5) AdaBoost z DecisionTree stump
-    evaluate_model(
-        "AdaBoost_DT",
-        AdaBoostClassifier(
-            estimator=DecisionTreeClassifier(max_depth=1),
-            n_estimators=50,
-            learning_rate=0.5,
-            algorithm="SAMME",
-            random_state=42,
-        ),
-        X_train,
-        X_test,
-        y_train,
-        y_test,
-        results_dir,
-    )
-
-    # 6) GradientBoosting
+    # 5) GradientBoosting
     evaluate_model(
         "GradientBoosting",
         GradientBoostingClassifier(
@@ -177,7 +160,7 @@ def main():
         results_dir,
     )
 
-    # 7) HistGradientBoosting
+    # 6) HistGradientBoosting
     evaluate_model(
         "HistGradientBoosting",
         HistGradientBoostingClassifier(
